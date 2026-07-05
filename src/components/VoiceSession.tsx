@@ -81,6 +81,7 @@ export function VoiceSession() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const billingRef = useRef<BillingSession | null>(null);
+  const hangUpAfterResponseRef = useRef(false);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   const teardown = useCallback(() => {
@@ -145,6 +146,12 @@ export function VoiceSession() {
           break;
         case "response.done":
           setAgentSpeaking(false);
+          if (hangUpAfterResponseRef.current) {
+            // The agent called end_call; give the tail of its goodbye a moment
+            // to play out on the audio track before dropping the connection.
+            hangUpAfterResponseRef.current = false;
+            setTimeout(() => endCall(), 1500);
+          }
           break;
         case "response.function_call_arguments.done": {
           const name = ev.name as string;
@@ -169,6 +176,7 @@ export function VoiceSession() {
               ms,
             },
           ]);
+          if (name === "end_call") hangUpAfterResponseRef.current = true;
           const dc = dcRef.current;
           if (dc?.readyState === "open") {
             dc.send(
@@ -181,7 +189,11 @@ export function VoiceSession() {
                 },
               }),
             );
-            dc.send(JSON.stringify({ type: "response.create" }));
+            // end_call needs no follow-up turn: the goodbye was already spoken
+            // and the connection drops after this response finishes.
+            if (name !== "end_call") {
+              dc.send(JSON.stringify({ type: "response.create" }));
+            }
           }
           break;
         }
@@ -190,7 +202,7 @@ export function VoiceSession() {
           break;
       }
     },
-    [upsertTranscript],
+    [upsertTranscript, endCall],
   );
 
   const start = useCallback(async () => {

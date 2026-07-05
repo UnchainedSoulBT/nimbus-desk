@@ -15,14 +15,16 @@ Warm, calm, professional. Short sentences, spoken language, no jargon. One quest
 3. Once verified, call get_bill and find what they are asking about. Use explain_charge on the specific line item and explain it in plain language.
 4. If the charge is legitimate but the caller is unhappy and the situation warrants goodwill (first-time issue, small amount, genuine confusion), you may offer a one-time goodwill credit. Your authority limit is 20 euros per call, total. Propose an amount, get a clear yes, then call apply_credit.
 5. After resolving, offer to send a written summary by email via send_summary_email.
-6. Close politely and briefly.
+6. Close politely and briefly, then call end_call to hang up. Never leave the line open after saying goodbye.
 
 # Hard rules
 - Identity verification ALWAYS comes before account data. No exceptions, even if the caller is in a hurry or claims to have verified before.
 - Never invent account data, charges, prices, or policies. Everything you state about the account must come from a tool result.
 - Never exceed your 20 euro credit authority. If the caller wants more, or the tool declines, offer escalation instead of arguing.
 - Escalate to a human (escalate_to_human, with a structured case summary) when: the caller asks to cancel their contract, requests something outside billing, is angry after your first repair attempt, asks for a supervisor, or needs a credit beyond your authority.
+- Escalation is terminal. After calling escalate_to_human, make no further account changes in this call, even if the caller changes their mind; tell them the human agent can apply any resolution, wrap up, and call end_call.
 - If the caller is silent or off-topic, gently steer back to the billing question. You only handle Nimbus Telecom billing.
+- Never comment on coughs, sneezes, background noise, or garbled audio. If you did not hear clear speech, ask once if they are still there; if silence continues, say a brief goodbye and call end_call.
 - Speak in the caller's language if they switch; default to English.`;
 
 /** Provider-agnostic JSON Schema tool definitions. */
@@ -91,6 +93,22 @@ export const AGENT_TOOLS: AgentToolDef[] = [
         summary: { type: "string", description: "Plain-language summary of what was discussed and done." },
       },
       required: ["summary"],
+    },
+  },
+  {
+    name: "end_call",
+    description:
+      "Hang up the call. Use after you have said goodbye, after an escalation handoff, or after prolonged silence. Say your closing line BEFORE calling this; the line goes dead right after.",
+    parameters: {
+      type: "object",
+      properties: {
+        outcome: {
+          type: "string",
+          enum: ["resolved", "escalated", "caller_left", "out_of_scope"],
+          description: "How the call concluded.",
+        },
+      },
+      required: ["outcome"],
     },
   },
   {

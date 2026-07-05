@@ -25,6 +25,10 @@ export function executeTool(
       return session.sendSummaryEmail(str("summary"));
     case "escalate_to_human":
       return session.escalateToHuman(str("reason"), str("case_summary"));
+    case "end_call":
+      // Hanging up is a channel action; each channel watches for this call
+      // and closes its own connection after the model's final words.
+      return { ok: true, data: { ending: true, outcome: str("outcome") || "resolved" } };
     default:
       return { ok: false, error: `Unknown tool: ${name}` };
   }

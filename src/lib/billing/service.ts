@@ -9,6 +9,43 @@ export const CREDIT_AUTHORITY_LIMIT_EUR = 20;
 
 export type ToolResult = { ok: true; data: unknown } | { ok: false; error: string };
 
+/* Names arrive through speech recognition, so "Fischer" often comes back as
+ * "Fisher". The last-4 digits are the exact credential; the name is verified
+ * fuzzily against the account that owns those digits, with a tolerance that
+ * scales with name length: 1 slip per ~6 characters, capped at 3. Keeps
+ * "Maia Fisher" in and "Dan Peretz" (a different given name) out. */
+function maxNameEditDistance(len: number): number {
+  return Math.min(3, Math.max(1, Math.floor(len / 6)));
+}
+
+function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function editDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i, ...new Array<number>(n).fill(0)];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 export class BillingSession {
   private verified: Customer | null = null;
   private creditsThisSession = 0;
@@ -18,16 +55,19 @@ export class BillingSession {
   }
 
   verifyIdentity(fullName: string, accountLast4: string): ToolResult {
-    const name = fullName.trim().toLowerCase();
-    const last4 = accountLast4.trim();
-    const match = CUSTOMERS.find(
-      (c) => c.fullName.toLowerCase() === name && c.last4 === last4,
-    );
+    const name = normalizeName(fullName);
+    const last4 = accountLast4.replace(/\D/g, "");
+    const byDigits = CUSTOMERS.find((c) => c.last4 === last4);
+    const accountName = byDigits ? normalizeName(byDigits.fullName) : "";
+    const match =
+      byDigits && name && editDistance(name, accountName) <= maxNameEditDistance(accountName.length)
+        ? byDigits
+        : undefined;
     if (!match) {
       return {
         ok: false,
         error:
-          "No account matches that name and last-4 combination. Ask the caller to double-check both.",
+          "No account matches that name and last-4 combination. Ask the caller to repeat the digits and spell their last name, then try again.",
       };
     }
     this.verified = match;

@@ -162,6 +162,21 @@ export function buildCases(openai: OpenAI, judgeModel: string): EvalCase[] {
       ],
     ),
 
+    // Captured regression from the first chat-channel test: the caller volunteered
+    // name + last-4 in their opening message and the agent asked for them again
+    // instead of verifying. Frozen: identity must verify from volunteered details.
+    captured(
+      "regression-upfront-identity",
+      "Volunteers name and digits in the first message",
+      [
+        "Hi, I'm Maya Fischer, account ending 2210. There's a roaming charge on my bill I don't understand.",
+        "Yes, that's right.",
+        "Thanks for explaining. That's all I needed.",
+        "Goodbye!",
+      ],
+      [verifiedSuccessfully, identityGatesAccountData],
+    ),
+
     // Captured regression from Ben's second live voice call: the agent escalated
     // a 50 EUR demand, then applied a 20 EUR credit when the caller backtracked.
     // Escalation must be terminal for account actions. Frozen as a permanent case.

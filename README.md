@@ -2,6 +2,8 @@
 
 A browser-based voice AI support agent for Nimbus Telecom, a fictional mobile operator. A visitor clicks **Start a call**, talks to the agent about a confusing charge, and watches it resolve the dispute through live function calls against a billing system: identity verification, bill lookup, a plain-language explanation, a goodwill credit within a hard authority limit, and a written summary. Anything off-script hands off to a human queue with a structured case summary.
 
+The same agent also runs a [text-chat channel](/chat) and an eval harness — three surfaces, one agent definition.
+
 Built as a deployment, not a demo: there is a problem, an agent design, integrations, guardrails, and measured outcomes on an [operations dashboard](/ops).
 
 ## The problem
@@ -104,8 +106,10 @@ PASS  8/8 cases · 24/24 assertions
 
 The eval runs on a text model (`gpt-4.1-mini` by default; `--agent-model gpt-4.1` for a stricter run) as a faithful proxy for the voice agent minus the audio path: the guardrails are enforced in the billing service and are model-independent, and the conversational policy lives in the shared instructions both channels read.
 
-## Roadmap
+## Text-chat channel
 
-- **Text chat channel** from the same agent definition and the same [text runner](src/lib/agent/text-runner.ts) the eval uses — one agent, three channels (voice, chat, eval).
+`/chat` runs the same agent in writing: [/api/chat](src/app/api/chat/route.ts) drives one `TextAgentSession` per conversation server-side — same instructions, same tools, same billing service, same guardrails, same tool-call timeline in the UI. Chat sessions land in the same ops log with a `channel: chat` tag, so /ops shows voice and chat side by side. The voice page offers chat as the fallback for every failure state (mic denied, caps reached, API down).
+
+Building it immediately paid for itself: the first chat test showed the agent re-asking for identity details the caller had already volunteered. The instruction fix shipped with a frozen regression case (`regression-upfront-identity`). And an intermittent eval failure revealed that "escalation is terminal" was enforced only in the prompt — the model obeyed it *most* of the time. It is now enforced in the billing service, like the credit cap: policy in code, prompt as UX.
 
 Built by [Ben Tal Mizrahi](https://trbt.cloud). MIT.

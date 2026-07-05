@@ -106,6 +106,7 @@ export function VoiceSession() {
         ? "resolved"
         : "abandoned";
     const payload = JSON.stringify({
+      channel: "voice",
       durationMs: Date.now() - s.startedAt,
       outcome,
       callerTurns: s.callerTurns,
@@ -435,11 +436,16 @@ export function VoiceSession() {
         <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
           <h3 className="text-lg font-semibold text-ink">{ERROR_COPY[errorKind].title}</h3>
           <p className="text-sm text-ink-dim max-w-md">{ERROR_COPY[errorKind].body}</p>
-          {errorKind !== "demo_asleep" && errorKind !== "ip_capped" && (
-            <button onClick={start} className="btn-ghost press-scale px-5 py-2 mt-2 text-sm">
-              Try again
-            </button>
-          )}
+          <div className="flex items-center gap-3 mt-2">
+            {errorKind !== "demo_asleep" && errorKind !== "ip_capped" && (
+              <button onClick={start} className="btn-ghost press-scale px-5 py-2 text-sm">
+                Try again
+              </button>
+            )}
+            <a href="/chat" className="btn-ember press-scale px-5 py-2 text-sm">
+              Use text chat instead
+            </a>
+          </div>
         </div>
       )}
 

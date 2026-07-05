@@ -122,6 +122,7 @@ export function OpsDashboard() {
               <thead>
                 <tr className="border-b border-border font-mono text-[11px] uppercase tracking-widest text-ink-muted">
                   <th className="px-4 py-2.5 text-left font-medium">Time</th>
+                  <th className="px-4 py-2.5 text-left font-medium">Channel</th>
                   <th className="px-4 py-2.5 text-left font-medium">Outcome</th>
                   <th className="px-4 py-2.5 text-right font-medium">Duration</th>
                   <th className="px-4 py-2.5 text-right font-medium">Turns</th>
@@ -133,6 +134,9 @@ export function OpsDashboard() {
                   <tr key={s.id} className="border-b border-border last:border-b-0 align-top">
                     <td className="px-4 py-2.5 font-mono text-xs text-ink-dim whitespace-nowrap">
                       {timeOfDay(s.at)}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-ink-dim">
+                      {s.channel ?? "voice"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span

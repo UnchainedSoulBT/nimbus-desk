@@ -49,6 +49,7 @@ function editDistance(a: string, b: string): number {
 export class BillingSession {
   private verified: Customer | null = null;
   private creditsThisSession = 0;
+  private escalated = false;
 
   get verifiedCustomer(): Customer | null {
     return this.verified;
@@ -130,7 +131,23 @@ export class BillingSession {
     };
   }
 
+  /* Escalation is terminal for account actions. The instructions say so too,
+   * but the eval showed prompt-only enforcement is probabilistic — the model
+   * occasionally applied a credit after a handoff. Policy lives in code. */
+  private requireNotEscalated(): ToolResult | null {
+    if (this.escalated) {
+      return {
+        ok: false,
+        error:
+          "Declined: this case has been escalated to a human agent. No further account changes can be made on this call; the human agent will handle any resolution.",
+      };
+    }
+    return null;
+  }
+
   applyCredit(amountEur: number, reason: string): ToolResult {
+    const blocked = this.requireNotEscalated();
+    if (blocked) return blocked;
     const c = this.requireIdentity();
     if (!(c as Customer).accountId) return c as ToolResult;
     const customer = c as Customer;
@@ -159,6 +176,8 @@ export class BillingSession {
   }
 
   sendSummaryEmail(summary: string): ToolResult {
+    const blocked = this.requireNotEscalated();
+    if (blocked) return blocked;
     const c = this.requireIdentity();
     if (!(c as Customer).accountId) return c as ToolResult;
     const customer = c as Customer;
@@ -174,6 +193,7 @@ export class BillingSession {
   }
 
   escalateToHuman(reason: string, caseSummary: string): ToolResult {
+    this.escalated = true;
     return {
       ok: true,
       data: {

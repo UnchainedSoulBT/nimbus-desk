@@ -5,6 +5,7 @@
  * never blocks traffic), matching the guardrail counters. */
 
 export type SessionOutcome = "resolved" | "escalated" | "abandoned";
+export type SessionChannel = "voice" | "chat";
 
 export interface ToolCallMeta {
   name: string;
@@ -15,6 +16,7 @@ export interface ToolCallMeta {
 export interface SessionRecord {
   id: string;
   at: number;
+  channel: SessionChannel;
   durationMs: number;
   outcome: SessionOutcome;
   callerTurns: number;
@@ -27,12 +29,16 @@ const sessions: SessionRecord[] = [];
 let counter = 0;
 
 const OUTCOMES: SessionOutcome[] = ["resolved", "escalated", "abandoned"];
+const CHANNELS: SessionChannel[] = ["voice", "chat"];
 
 /** Validate an untrusted report from the browser; returns null if malformed. */
 export function sanitizeReport(body: unknown): Omit<SessionRecord, "id" | "at"> | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
   if (!OUTCOMES.includes(b.outcome as SessionOutcome)) return null;
+  // Missing channel means an older voice client; anything else is rejected.
+  const channel = (b.channel ?? "voice") as SessionChannel;
+  if (!CHANNELS.includes(channel)) return null;
   const durationMs = Number(b.durationMs);
   const callerTurns = Number(b.callerTurns);
   const agentTurns = Number(b.agentTurns);
@@ -53,6 +59,7 @@ export function sanitizeReport(body: unknown): Omit<SessionRecord, "id" | "at"> 
     });
   }
   return {
+    channel,
     durationMs: Math.round(durationMs),
     outcome: b.outcome as SessionOutcome,
     callerTurns,

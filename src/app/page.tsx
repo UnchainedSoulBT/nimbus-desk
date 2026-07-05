@@ -34,6 +34,14 @@ export default function Home() {
 
         <VoiceSession />
 
+        <p className="mt-3 text-sm text-ink-muted">
+          Prefer typing, or no mic handy?{" "}
+          <a href="/chat" className="text-ember underline underline-offset-4">
+            The same agent runs a text channel
+          </a>
+          . One agent definition, two channels.
+        </p>
+
         <section className="mt-12 grid gap-4 sm:grid-cols-3 text-sm text-ink-dim">
           <div className="panel p-5">
             <h2 className="font-mono text-xs uppercase tracking-widest text-ink-muted mb-2">

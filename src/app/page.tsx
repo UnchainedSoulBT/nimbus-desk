@@ -22,7 +22,7 @@ export default function Home() {
               "OpenAI Realtime API",
               "WebRTC",
               "Next.js + TypeScript",
-              "6 tools, mock billing system",
+              "7 tools, mock billing system",
               "3 min cap",
             ].map((chip) => (
               <span key={chip} className="rounded-full border border-border px-3 py-1 bg-bg-inset">
@@ -139,6 +139,59 @@ export default function Home() {
               match on the spoken name, locked in with a regression test. Every failure
               becomes a test.
             </p>
+          </div>
+        </section>
+
+        <section className="mt-14">
+          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-ink-muted mb-2">
+            Why it&apos;s built this way
+          </h2>
+          <p className="mb-5 max-w-2xl text-sm text-ink-dim">
+            Every mechanism here is a decision with a reason and an accepted tradeoff.
+            These are the ones that matter.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              {
+                t: "Telecom billing, not a generic assistant",
+                d: "A billing dispute has everything a real deployment has: identity, account data, a bounded remedy, and a human fallback. Each step is verifiable through a tool call, so the demo proves integration work rather than conversation. And it resolves inside 90 seconds, which is all the time a visitor gives you.",
+              },
+              {
+                t: "Speech-to-speech, not a cascaded pipeline",
+                d: "The classic stack chains speech-to-text, an LLM, and text-to-speech. Every hop adds latency, and interruptions need custom handling. OpenAI's Realtime API does speech in, speech out with barge-in built in, which is why the agent stops talking the moment you cut it off. The tradeoff is less per-stage control and a higher price per minute; the caps and the text-mode eval absorb both.",
+              },
+              {
+                t: "WebRTC with ephemeral secrets",
+                d: "The real API key never leaves the server. The browser gets a client secret that expires in 60 seconds and only gates starting a call. The browser also brings echo cancellation and jitter handling for free, which is most of what makes a voice call feel decent on bad wifi.",
+              },
+              {
+                t: "A model per task, not one model for everything",
+                d: "Voice runs on gpt-realtime-2 with the cedar voice, picked for a warm, professional register. Chat, the eval personas, and the judge run on gpt-4.1-mini: it passed all 26 behavioral assertions at a fraction of the cost, so paying for a bigger model there buys nothing. Right-sizing the model per task is the habit; every choice is one env var to revisit.",
+              },
+              {
+                t: "Policy lives in code, the prompt is UX",
+                d: "The 20 euro credit cap, the identity gate, and the rule that escalation ends account actions are all enforced in the billing service. The eval proved why: instructions alone held the escalation rule most of the time, and most of the time is not a policy. The prompt shapes tone and flow; code decides what is allowed.",
+              },
+              {
+                t: "Caps on everything, failing closed",
+                d: "Realtime audio is the most expensive API surface there is, and this demo is public. Calls hard-stop at 3 minutes with a visible countdown, each IP gets a daily allowance, and a global daily budget puts the demo to sleep before the bill grows teeth. Every limit fails closed with honest copy instead of a broken page.",
+              },
+              {
+                t: "Transcripts never leave the browser",
+                d: "The ops dashboard runs on outcomes, durations, and tool latencies, not on what callers said. That split keeps a public metrics page safe to share and mirrors how a real deployment separates media storage from operational telemetry.",
+              },
+              {
+                t: "One agent definition, three surfaces",
+                d: "Instructions and tools live in a single TypeScript module consumed by voice, chat, and the eval harness. When a live call exposed a flaw, the fix landed once and every channel inherited it, with a frozen regression case to keep it fixed. That failure-becomes-a-test loop is the working method this whole project demonstrates.",
+              },
+            ].map((card) => (
+              <div key={card.t} className="panel p-5">
+                <h3 className="font-mono text-xs uppercase tracking-widest text-ink mb-2">
+                  {card.t}
+                </h3>
+                <p className="text-sm text-ink-dim leading-relaxed">{card.d}</p>
+              </div>
+            ))}
           </div>
         </section>
 

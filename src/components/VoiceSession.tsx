@@ -82,6 +82,47 @@ export function VoiceSession() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const billingRef = useRef<BillingSession | null>(null);
   const hangUpAfterResponseRef = useRef(false);
+
+  /* Operational metadata for the /ops log, mirrored in refs so the endCall
+   * closure never reads stale state. Transcript text is never reported. */
+  const statsRef = useRef({
+    startedAt: 0,
+    callerTurns: 0,
+    agentTurns: 0,
+    toolMeta: [] as { name: string; ok: boolean; ms: number }[],
+    escalated: false,
+    resolvedSignal: false,
+    endOutcome: "" as string,
+    reported: false,
+  });
+
+  const reportSession = useCallback((viaBeacon = false) => {
+    const s = statsRef.current;
+    if (s.reported || !s.startedAt) return;
+    s.reported = true;
+    const outcome = s.escalated
+      ? "escalated"
+      : s.endOutcome === "resolved" || s.resolvedSignal
+        ? "resolved"
+        : "abandoned";
+    const payload = JSON.stringify({
+      durationMs: Date.now() - s.startedAt,
+      outcome,
+      callerTurns: s.callerTurns,
+      agentTurns: s.agentTurns,
+      toolCalls: s.toolMeta,
+    });
+    if (viaBeacon && navigator.sendBeacon) {
+      navigator.sendBeacon("/api/sessions", new Blob([payload], { type: "application/json" }));
+    } else {
+      fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  }, []);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   const teardown = useCallback(() => {
@@ -97,11 +138,20 @@ export function VoiceSession() {
   }, []);
 
   const endCall = useCallback(() => {
+    reportSession();
     teardown();
     setStatus("ended");
-  }, [teardown]);
+  }, [teardown, reportSession]);
 
   useEffect(() => () => teardown(), [teardown]);
+
+  // Tab closed mid-call: report what we have as abandoned via beacon.
+  useEffect(() => {
+    if (status !== "live") return;
+    const onPageHide = () => reportSession(true);
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [status, reportSession]);
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -135,6 +185,7 @@ export function VoiceSession() {
           upsertTranscript(`u-${ev.item_id}`, "caller", (p) => p + (ev.delta as string ?? ""), false);
           break;
         case "conversation.item.input_audio_transcription.completed":
+          statsRef.current.callerTurns += 1;
           upsertTranscript(`u-${ev.item_id}`, "caller", () => (ev.transcript as string ?? ""), true);
           break;
         case "response.output_audio_transcript.delta":
@@ -142,6 +193,7 @@ export function VoiceSession() {
           upsertTranscript(`a-${ev.item_id}`, "agent", (p) => p + (ev.delta as string ?? ""), false);
           break;
         case "response.output_audio_transcript.done":
+          statsRef.current.agentTurns += 1;
           upsertTranscript(`a-${ev.item_id}`, "agent", () => (ev.transcript as string ?? ""), true);
           break;
         case "response.done":
@@ -176,7 +228,16 @@ export function VoiceSession() {
               ms,
             },
           ]);
-          if (name === "end_call") hangUpAfterResponseRef.current = true;
+          statsRef.current.toolMeta.push({ name, ok: result.ok, ms });
+          if (name === "escalate_to_human" && result.ok) statsRef.current.escalated = true;
+          if ((name === "apply_credit" || name === "send_summary_email") && result.ok) {
+            statsRef.current.resolvedSignal = true;
+          }
+          if (name === "end_call") {
+            hangUpAfterResponseRef.current = true;
+            statsRef.current.endOutcome =
+              typeof args.outcome === "string" ? args.outcome : "";
+          }
           const dc = dcRef.current;
           if (dc?.readyState === "open") {
             dc.send(
@@ -211,6 +272,16 @@ export function VoiceSession() {
     setTranscript([]);
     setToolCalls([]);
     billingRef.current = new BillingSession();
+    statsRef.current = {
+      startedAt: 0,
+      callerTurns: 0,
+      agentTurns: 0,
+      toolMeta: [],
+      escalated: false,
+      resolvedSignal: false,
+      endOutcome: "",
+      reported: false,
+    };
 
     // 1. Ephemeral secret (server enforces caps and holds the real key).
     let token: { value: string; sessionSeconds: number };
@@ -260,6 +331,7 @@ export function VoiceSession() {
       dc.onmessage = (e) => handleServerEvent(e.data as string);
       dc.onopen = () => {
         setStatus("live");
+        statsRef.current.startedAt = Date.now();
         // The agent greets first; nudge it to open the call.
         dc.send(JSON.stringify({ type: "response.create" }));
 

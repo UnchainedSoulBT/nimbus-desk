@@ -26,6 +26,10 @@ export type GuardVerdict =
   | { allowed: false; reason: "demo_asleep" | "ip_capped" | "cooldown" };
 
 export function allowSession(ip: string): GuardVerdict {
+  // Caps exist to protect the public deployment's token budget. Local dev
+  // (pnpm dev) is the developer's own key and needs unlimited test calls.
+  if (process.env.NODE_ENV !== "production") return { allowed: true };
+
   const today = new Date().toISOString().slice(0, 10);
   if (today !== dailyDay) {
     dailyDay = today;

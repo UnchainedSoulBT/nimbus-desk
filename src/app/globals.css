@@ -1,0 +1,164 @@
+@import "tailwindcss";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Nimbus Desk shares trbt.cloud's design language: white canvas, charcoal ink,
+ * ember + teal accents, JetBrains Mono for labels, generous whitespace. */
+:root {
+  --bg-page: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-inset: #f7f8fa;
+  --bg-raise: #eef1f5;
+  --border: #e9ebf0;
+  --border-strong: #d9dde4;
+
+  --ink: #15171c;
+  --ink-dim: #4b515b;
+  --ink-muted: #8b919c;
+
+  --ember: #ef4327;
+  --ember-hi: #d5361c;
+  --ember-tint: rgba(239, 67, 39, 0.09);
+  --coin: #b0790a;
+  --ok: #0d9488;
+  --ok-tint: rgba(13, 148, 136, 0.1);
+
+  --shadow-panel: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px -6px rgba(16, 24, 40, 0.1);
+  --shadow-hover: 0 2px 6px rgba(16, 24, 40, 0.06), 0 18px 40px -14px rgba(16, 24, 40, 0.18);
+  --glow-ember: 0 8px 22px -10px rgba(239, 67, 39, 0.5);
+}
+
+@theme inline {
+  --color-bg-page: var(--bg-page);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-inset: var(--bg-inset);
+  --color-bg-raise: var(--bg-raise);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-muted: var(--ink-muted);
+  --color-ember: var(--ember);
+  --color-ember-hi: var(--ember-hi);
+  --color-coin: var(--coin);
+  --color-ok: var(--ok);
+
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+}
+
+:root { color-scheme: light; }
+
+html {
+  background-color: var(--bg-page);
+  color: var(--ink);
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  line-height: 1.6;
+  background: var(--bg-page);
+}
+
+::selection { background: rgba(239, 67, 39, 0.18); color: var(--ink); }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.grid-bg {
+  background-image: radial-gradient(rgba(21, 23, 28, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-inset);
+  border-radius: 16px 16px 0 0;
+}
+
+.btn-ember {
+  background: var(--ember);
+  color: #ffffff;
+  border-radius: 11px;
+  box-shadow: var(--glow-ember);
+  font-weight: 600;
+}
+.btn-ember:hover { background: var(--ember-hi); transform: translateY(-1px); }
+
+.btn-ghost {
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  color: var(--ink);
+  background: var(--bg-panel);
+  font-weight: 600;
+}
+.btn-ghost:hover { background: var(--bg-inset); border-color: var(--ink-muted); transform: translateY(-1px); }
+
+.press-scale {
+  transition-property: transform, background-color, border-color, color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.press-scale:active { transform: scale(0.97); }
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.45);
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+  70% { box-shadow: 0 0 0 9px rgba(13, 148, 136, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+}
+
+/* Speaking indicator: three bars that dance while the agent talks. */
+.voice-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.voice-bars span {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ok);
+  animation: voice-bounce 0.9s ease-in-out infinite;
+}
+.voice-bars span:nth-child(1) { height: 60%; animation-delay: 0s; }
+.voice-bars span:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+.voice-bars span:nth-child(3) { height: 45%; animation-delay: 0.3s; }
+@keyframes voice-bounce {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
